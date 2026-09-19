@@ -4,13 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.redtourism.common.OrderChain;
 import com.redtourism.entity.OrderInfo;
 import com.redtourism.mapper.OrderInfoMapper;
 import com.redtourism.service.OrderService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -19,58 +19,40 @@ public class OrderServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo> im
     @Override
     public OrderInfo createOrder(OrderInfo order) {
         order.setOrderNo("ORD" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase());
-        order.setStatus("PENDING");
+        order.setStatus(OrderChain.STATUS_PENDING);
         save(order);
         return order;
     }
 
     @Override
     public boolean cancelOrder(Long orderId, Long userId) {
-        OrderInfo order = getById(orderId);
-        if (order == null) {
-            throw new RuntimeException("订单不存在");
-        }
-        if (!order.getUserId().equals(userId)) {
-            throw new RuntimeException("无权操作此订单");
-        }
-        if (!"PENDING".equals(order.getStatus())) {
-            throw new RuntimeException("当前订单状态不可取消");
-        }
-        order.setStatus("CANCELLED");
-        return updateById(order);
+        return transitionByUser(orderId, userId, OrderChain.Action.CANCEL, null);
     }
 
     @Override
     public boolean payOrder(Long orderId, String payMethod, Long userId) {
-        OrderInfo order = getById(orderId);
-        if (order == null) {
-            throw new RuntimeException("订单不存在");
-        }
-        if (!order.getUserId().equals(userId)) {
-            throw new RuntimeException("无权操作此订单");
-        }
-        if (!"PENDING".equals(order.getStatus())) {
-            throw new RuntimeException("当前订单状态不可支付");
-        }
-        order.setStatus("PAID");
-        order.setPayMethod(payMethod);
-        order.setPayTime(new Date());
-        return updateById(order);
+        return transitionByUser(orderId, userId, OrderChain.Action.PAY, payMethod);
     }
 
     @Override
     public boolean refundOrder(Long orderId, Long userId) {
-        OrderInfo order = getById(orderId);
-        if (order == null) {
-            throw new RuntimeException("订单不存在");
-        }
-        if (!order.getUserId().equals(userId)) {
-            throw new RuntimeException("无权操作此订单");
-        }
-        if (!"PAID".equals(order.getStatus())) {
-            throw new RuntimeException("当前订单状态不可退款");
-        }
-        order.setStatus("REFUNDED");
+        return transitionByUser(orderId, userId, OrderChain.Action.REFUND, null);
+    }
+
+    @Override
+    public boolean transitionByAdmin(Long orderId, OrderChain.Action action) {
+        // 管理端强制流转：仅校验订单存在，不校验归属与前置状态（保持既有行为）
+        OrderInfo order = OrderChain.requireExists(getById(orderId));
+        OrderChain.apply(order, action, null);
+        return updateById(order);
+    }
+
+    /** 用户端流转：订单存在 → 归属当前用户 → 前置状态校验 → 应用流转 */
+    private boolean transitionByUser(Long orderId, Long userId, OrderChain.Action action, String payMethod) {
+        OrderInfo order = OrderChain.requireExists(getById(orderId));
+        OrderChain.requireOwner(order, userId);
+        OrderChain.checkTransition(order, action);
+        OrderChain.apply(order, action, payMethod);
         return updateById(order);
     }
 

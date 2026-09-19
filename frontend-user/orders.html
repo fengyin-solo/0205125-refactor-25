@@ -128,20 +128,30 @@ function renderSidebar() {
     document.getElementById('sidebarPhone').textContent = u.phone || '';
 }
 
+// 订单类型/状态展示元数据来自后端 OrderChain（/api/order/meta），与管理端共用同一数据源
+let orderTypeMeta = {}, orderStatusMeta = {};
+
+async function loadOrderMeta() {
+    const meta = await api('/api/order/meta');
+    ((meta && meta.types) || []).forEach(t => orderTypeMeta[t.code] = t);
+    ((meta && meta.statuses) || []).forEach(s => orderStatusMeta[s.code] = s.name);
+}
+
 function getStatusBadge(status) {
+    const name = orderStatusMeta[status] || status;
     const map = {
-        'PENDING': '<span class="status status-pending"><i class="fas fa-clock"></i> 待支付</span>',
-        'PAID': '<span class="status status-paid"><i class="fas fa-check-circle"></i> 已支付</span>',
-        'CANCELLED': '<span class="status status-closed"><i class="fas fa-times-circle"></i> 已取消</span>',
-        'REFUNDED': '<span class="status" style="background:#f0f0f0;color:#999"><i class="fas fa-undo"></i> 已退款</span>',
-        'COMPLETED': '<span class="status status-paid"><i class="fas fa-star"></i> 已完成</span>'
+        'PENDING': '<span class="status status-pending"><i class="fas fa-clock"></i> ' + name + '</span>',
+        'PAID': '<span class="status status-paid"><i class="fas fa-check-circle"></i> ' + name + '</span>',
+        'CANCELLED': '<span class="status status-closed"><i class="fas fa-times-circle"></i> ' + name + '</span>',
+        'REFUNDED': '<span class="status" style="background:#f0f0f0;color:#999"><i class="fas fa-undo"></i> ' + name + '</span>',
+        'COMPLETED': '<span class="status status-paid"><i class="fas fa-star"></i> ' + name + '</span>'
     };
     return map[status] || '<span class="status">' + status + '</span>';
 }
 
 function getOrderTypeName(type) {
-    const map = { 'SPOT': '<i class="fas fa-mountain"></i> 景点', 'HOTEL': '<i class="fas fa-hotel"></i> 酒店', 'ROUTE': '<i class="fas fa-route"></i> 线路', 'FOOD': '<i class="fas fa-utensils"></i> 美食' };
-    return map[type] ? '<span class="order-type-badge">' + map[type] + '</span>' : '';
+    const meta = orderTypeMeta[type];
+    return meta ? '<span class="order-type-badge"><i class="fas ' + meta.icon + '"></i> ' + meta.name + '</span>' : '';
 }
 
 function getOrderActions(order) {
@@ -229,7 +239,7 @@ function refundOrder(id) {
 }
 
 renderSidebar();
-loadOrders(1);
+loadOrderMeta().then(() => loadOrders(1));
 </script>
 </body>
 </html>

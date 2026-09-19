@@ -2,6 +2,7 @@ package com.redtourism.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.redtourism.common.Constants;
+import com.redtourism.common.OrderChain;
 import com.redtourism.common.Result;
 import com.redtourism.entity.OrderInfo;
 import com.redtourism.entity.User;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/order")
@@ -80,5 +83,17 @@ public class OrderController {
     @GetMapping("/detail")
     public Result<OrderInfo> detail(@RequestParam Long id) {
         return Result.success(orderService.getById(id));
+    }
+
+    /**
+     * 订单元数据：订单类型与订单状态的展示信息。
+     * 用户端与管理端共用此数据源，新增订单类型只需调整 OrderChain。
+     */
+    @GetMapping("/meta")
+    public Result<Map<String, Object>> meta() {
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("types", OrderChain.TYPES);
+        meta.put("statuses", OrderChain.STATUSES);
+        return Result.success(meta);
     }
 }

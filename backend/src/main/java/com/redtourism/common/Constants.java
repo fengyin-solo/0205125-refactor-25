@@ -13,9 +13,6 @@ public class Constants {
     public static final String TARGET_FOOD = "FOOD";
     public static final String TARGET_COMMENT = "COMMENT";
 
-    public static final String ORDER_HOTEL = "HOTEL";
-    public static final String ORDER_FOOD = "FOOD";
-
     public static final String PAY_WECHAT = "WECHAT";
     public static final String PAY_BANK_ICBC = "BANK_ICBC";
     public static final String PAY_BANK_CCB = "BANK_CCB";
