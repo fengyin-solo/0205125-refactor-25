@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.redtourism.common.Constants;
 import com.redtourism.common.Result;
+import com.redtourism.common.enums.OrderAction;
 import com.redtourism.entity.*;
 import com.redtourism.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -519,28 +520,19 @@ public class AdminController {
 
     @GetMapping("/order/cancel")
     public Result<String> adminCancelOrder(@RequestParam Long orderId) {
-        OrderInfo order = orderService.getById(orderId);
-        if (order == null) return Result.error("订单不存在");
-        order.setStatus("CANCELLED");
-        orderService.updateById(order);
+        orderService.forceChangeStatus(orderId, OrderAction.CANCEL);
         return Result.success("已取消");
     }
 
     @GetMapping("/order/refund")
     public Result<String> adminRefundOrder(@RequestParam Long orderId) {
-        OrderInfo order = orderService.getById(orderId);
-        if (order == null) return Result.error("订单不存在");
-        order.setStatus("REFUNDED");
-        orderService.updateById(order);
+        orderService.forceChangeStatus(orderId, OrderAction.REFUND);
         return Result.success("已退款");
     }
 
     @GetMapping("/order/complete")
     public Result<String> adminCompleteOrder(@RequestParam Long orderId) {
-        OrderInfo order = orderService.getById(orderId);
-        if (order == null) return Result.error("订单不存在");
-        order.setStatus("COMPLETED");
-        orderService.updateById(order);
+        orderService.forceChangeStatus(orderId, OrderAction.COMPLETE);
         return Result.success("已完成");
     }
 
